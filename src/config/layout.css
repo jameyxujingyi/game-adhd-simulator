@@ -1,0 +1,6 @@
+:root {
+  --game-width: 1280px;
+  --game-height: 896px;
+  /* 由 App.tsx 在运行时写入无单位数值 */
+  --game-scale: 1;
+}

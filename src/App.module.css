@@ -1,0 +1,18 @@
+.scaleShell {
+  position: relative;
+  width: calc(var(--game-width) * var(--game-scale));
+  height: calc(var(--game-height) * var(--game-scale));
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.viewport {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: var(--game-width);
+  height: var(--game-height);
+  transform: scale(var(--game-scale));
+  transform-origin: top left;
+  overflow: hidden;
+}
