@@ -5,6 +5,10 @@
   pointer-events: none;
 }
 
+.overlayDimmed {
+  filter: brightness(0.5);
+}
+
 .panel {
   position: absolute;
   top: 14%;

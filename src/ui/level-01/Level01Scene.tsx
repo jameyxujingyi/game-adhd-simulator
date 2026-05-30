@@ -112,7 +112,8 @@ export default function Level01Scene() {
   const sideQuest = state.activeSideQuest
   const musicQuest = state.musicQuest
   const musicPhase = musicQuest?.phase
-  const sceneMusicBlocked = musicPhase === 'album-modal'
+  const musicIconPhase = musicPhase === 'icon'
+  const musicAlbumModalOpen = musicPhase === 'album-modal'
   const phoneMessageQuest = state.phoneMessageQuest
   const phoneQuestActive = phoneMessageQuest !== null
   const fontSelectModalOpen = state.fontSelectModalOpen
@@ -120,6 +121,7 @@ export default function Level01Scene() {
   const laptopBgColor = state.laptopBgColor
   const bgSelectQuest = state.bgSelectQuest
   const bgSelectQuestActive = bgSelectQuest !== null
+  const scenePartDimmed = bgSelectQuestActive || musicIconPhase
   const distractionQuest = state.distractionQuest
   const distractionQuestActive = distractionQuest !== null
   const choreQuest = state.choreQuest
@@ -171,10 +173,10 @@ export default function Level01Scene() {
   return (
     <div className={styles.scene}>
       <div
-        className={`${styles.sceneContent} ${isReady && showStartModal ? styles.sceneDimmed : ''} ${fontSelectModalOpen ? styles.sceneDimmed : ''} ${sideQuest ? styles.sceneQuestDimmed : ''} ${sceneMusicBlocked ? styles.sceneMusicBlocked : ''} ${phoneQuestActive ? styles.sceneShake : ''}`}
+        className={`${styles.sceneContent} ${isReady && showStartModal ? styles.sceneDimmed : ''} ${fontSelectModalOpen ? styles.sceneDimmed : ''} ${musicAlbumModalOpen ? styles.sceneDimmed : ''} ${sideQuest ? styles.sceneQuestDimmed : ''} ${phoneQuestActive ? styles.sceneShake : ''}`}
       >
       {/* 房间背景：三线透视（左墙 / 后墙 / 地面） */}
-      <div className={`${styles.room} ${bgSelectQuestActive ? styles.bgSelectPartDimmed : ''}`}>
+      <div className={`${styles.room} ${scenePartDimmed ? styles.scenePartDimmed : ''}`}>
         <svg
           className={styles.roomSvg}
           viewBox="0 0 1000 700"
@@ -206,7 +208,7 @@ export default function Level01Scene() {
       </div>
 
       {/* 顶部 HUD：倒计时 + 退出 */}
-      <div className={`${styles.hud} ${bgSelectQuestActive ? styles.bgSelectPartDimmed : ''}`}>
+      <div className={`${styles.hud} ${scenePartDimmed ? styles.scenePartDimmed : ''}`}>
         <div className={styles.timer} aria-live="polite">
           {formatTime(state.remainingMs)}
         </div>
@@ -236,7 +238,7 @@ export default function Level01Scene() {
       {/* 桌子：笔记本电脑 + 手机 + 记事本 */}
       <div className={styles.deskArea}>
         <div
-          className={`${styles.deskSurface} ${bgSelectQuestActive ? styles.bgSelectPartDimmed : ''}`}
+          className={`${styles.deskSurface} ${scenePartDimmed ? styles.scenePartDimmed : ''}`}
           aria-hidden="true"
         />
 
@@ -247,10 +249,6 @@ export default function Level01Scene() {
               <div
                 className={`${styles.pptScreen} ${laptopFontHeiti ? styles.pptScreenHeiti : ''} ${laptopBgColor ? PPT_BG_CLASS[laptopBgColor] : ''}`}
               >
-                {!hidePptChrome && musicPhase === 'icon' && (
-                  <div className={styles.pptScreenGrayVeil} aria-hidden="true" />
-                )}
-
                 {!hidePptChrome && musicPhase === 'playing' && (
                   <div className={musicStyles.laptopAlbumSpinWrap} aria-hidden="true">
                     <img src={albumCover} alt="" className={musicStyles.laptopAlbumSpin} />
@@ -356,7 +354,7 @@ export default function Level01Scene() {
           {/* 手机 */}
           <ClickTarget
             componentId="phone"
-            className={`${styles.phone} ${bgSelectQuestActive ? styles.bgSelectPartDimmed : ''}`}
+            className={`${styles.phone} ${scenePartDimmed && !phoneQuestActive ? styles.scenePartDimmed : ''} ${phoneQuestActive ? styles.phoneQuestSpotlight : ''}`}
             ariaLabel="手机"
           >
             <div className={styles.phoneBody}>
@@ -368,7 +366,7 @@ export default function Level01Scene() {
           </ClickTarget>
 
           {/* 右下角记事本 */}
-          <div className={`${styles.notepad} ${bgSelectQuestActive ? styles.bgSelectPartDimmed : ''}`}>
+          <div className={`${styles.notepad} ${scenePartDimmed ? styles.scenePartDimmed : ''}`}>
             <div className={styles.notepadSpiral} aria-hidden="true">
               {Array.from({ length: 8 }).map((_, i) => (
                 <span key={i} className={styles.spiralRing} />
@@ -402,7 +400,7 @@ export default function Level01Scene() {
 
       {/* 墙地交界线：拖把、喷水壶、盆栽 */}
       <div
-        className={`${styles.roomCorner} ${choreMopPhase || choreWateringPhase ? styles.choreSpotlightCorner : ''} ${bgSelectQuestActive ? styles.bgSelectPartDimmed : ''}`}
+        className={`${styles.roomCorner} ${choreMopPhase || choreWateringPhase ? styles.choreSpotlightCorner : ''} ${scenePartDimmed ? styles.scenePartDimmed : ''}`}
       >
         <ClickTarget
           ref={mopRef}
@@ -456,7 +454,7 @@ export default function Level01Scene() {
       <ClickTarget
         ref={waterRef}
         componentId="water-puddle"
-        className={`${styles.waterPuddle} ${choreMopPhase ? styles.choreSpotlightItem : ''} ${choreMopPhase ? styles.waterPulse : ''} ${bgSelectQuestActive ? styles.bgSelectPartDimmed : ''}`}
+        className={`${styles.waterPuddle} ${choreMopPhase ? styles.choreSpotlightItem : ''} ${choreMopPhase ? styles.waterPulse : ''} ${scenePartDimmed ? styles.scenePartDimmed : ''}`}
         ariaLabel="地上一滩水"
       >
         <svg viewBox="0 0 120 70" className={styles.waterSvg} aria-hidden="true">
@@ -484,6 +482,14 @@ export default function Level01Scene() {
       )}
       </div>
 
+      {phoneMessageQuest && (
+        <PhoneMessageQuestOverlay
+          phase={phoneMessageQuest.phase}
+          onOpenReply={() => dispatch({ type: 'OPEN_PHONE_REPLY' })}
+          onSend={() => dispatch({ type: 'SEND_PHONE_MESSAGE' })}
+        />
+      )}
+
       {sideQuest?.type === 'content-box-1-search' && (
         <SearchQuestPanel
           searchQuery={CONTENT_BOX_1_SEARCH_QUERY}
@@ -502,6 +508,7 @@ export default function Level01Scene() {
           searchQuery={CONTENT_BOX_2_SEARCH_QUERY}
           answerLines={CONTENT_BOX_2_ANSWER_LINES}
           pulseSearchIcon={false}
+          dimmed={phoneQuestActive}
           snapBlocked={phoneQuestActive}
           searchRevealed={sideQuest.searchRevealed}
           onReveal={() => dispatch({ type: 'REVEAL_SEARCH_ANSWER' })}
@@ -570,14 +577,6 @@ export default function Level01Scene() {
           contentBox2Text={contentBox2Filled}
           onDismissThought={() => {}}
           onRestoreItem={(itemId) => dispatch({ type: 'RESTORE_FALLEN_ITEM', itemId })}
-        />
-      )}
-
-      {phoneMessageQuest && (
-        <PhoneMessageQuestOverlay
-          phase={phoneMessageQuest.phase}
-          onOpenReply={() => dispatch({ type: 'OPEN_PHONE_REPLY' })}
-          onSend={() => dispatch({ type: 'SEND_PHONE_MESSAGE' })}
         />
       )}
 

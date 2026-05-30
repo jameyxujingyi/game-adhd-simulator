@@ -13,6 +13,7 @@ interface SearchQuestPanelProps {
   onComplete: () => void
   targetRef: React.RefObject<HTMLElement | null>
   snapBlocked?: boolean
+  dimmed?: boolean
 }
 
 function isPointerInRect(x: number, y: number, rect: DOMRect): boolean {
@@ -89,6 +90,7 @@ export default function SearchQuestPanel({
   onComplete,
   targetRef,
   snapBlocked = false,
+  dimmed = false,
 }: SearchQuestPanelProps) {
   const floatRef = useRef<HTMLDivElement>(null)
   const completeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -266,7 +268,10 @@ export default function SearchQuestPanel({
   const showSearchPulse = pulseSearchIcon && !searchRevealed
 
   return (
-    <div className={styles.overlay} aria-label="搜索任务">
+    <div
+      className={`${styles.overlay} ${dimmed ? styles.overlayDimmed : ''}`}
+      aria-label="搜索任务"
+    >
       <div className={styles.panel}>
         <div className={`${styles.searchUnit} ${searchRevealed ? styles.searchUnitExpanded : ''}`}>
           <div className={styles.searchBar}>

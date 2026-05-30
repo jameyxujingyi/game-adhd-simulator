@@ -19,16 +19,13 @@
   pointer-events: none;
 }
 
-.bgSelectPartDimmed {
+.scenePartDimmed {
   filter: brightness(0.5);
+  transition: filter 0.35s ease;
 }
 
 .sceneQuestDimmed {
   filter: brightness(0.72);
-  pointer-events: none;
-}
-
-.sceneMusicBlocked {
   pointer-events: none;
 }
 
@@ -283,6 +280,12 @@
 
 .choreSpotlightItem {
   z-index: 125;
+}
+
+.phoneQuestSpotlight {
+  position: relative;
+  z-index: 130;
+  pointer-events: auto;
 }
 
 .choreMopHidden,

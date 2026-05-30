@@ -1,74 +1,122 @@
-# React + TypeScript + Vite
+# 我刚才在干什么来着（ADHD 模拟器）
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+一款 1 分钟注意力模拟游戏。玩家需要在截止时间内完成一个日常任务（例如制作 PPT、整理房间、收拾行李等），并在不断出现的干扰中尝试把主任务做完。
 
-Currently, two official plugins are available:
+**技术栈：** React + TypeScript + Vite · 纯前端，无后端
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+---
 
-## React Compiler
+## 游戏定位
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+游戏希望表现一种很多现代人都熟悉的体验：当我们试图专注于一件事情时，脑海中会不断出现新的事情需要处理。这些事情往往并不重要，却会迅速占据注意力，让原本的任务无法继续推进。
 
-## Expanding the ESLint configuration
+游戏参考了 ADHD（注意力缺陷与多动障碍）相关体验，但并非医学模拟，而是对现代数字生活中注意力被不断切割的娱乐化表现。
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+---
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## 核心循环
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+玩家始终有一个明确的主任务。游戏过程中会不断出现副任务。
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+副任务出现后，主任务区域会开始受到干扰，例如：
+
+- 抖动
+- 缩小
+- 模糊
+- 操作延迟
+- 无法点击
+
+干扰会逐渐加重。玩家无法通过坚持主任务来解决问题——继续忽略副任务只会让主任务越来越难操作，最终无法继续进行。因此玩家必须暂停主任务，处理副任务。
+
+完成副任务后，主任务恢复正常，可以继续推进。
+
+---
+
+## 设计原则
+
+本游戏不围绕「玩家是否应该做副任务」展开。副任务并不是可选内容，而是代表注意力已经被新的事物占据。
+
+游戏模拟的是：**明明知道应该继续工作，但已经无法继续专注下去。** 因此玩家最终一定会被迫处理副任务。
+
+---
+
+## 熵增机制
+
+玩家离开主任务期间，主任务会发生熵增。熵增并不一定与副任务存在逻辑关系，它代表现实中注意力离开后，任务状态逐渐失控。
+
+例如：
+
+**制作 PPT 时：**
+
+- 已经拖好的内容框发生偏移
+- 图片位置错乱
+- 元素重新散开
+
+**整理房间时：**
+
+- 已整理区域重新变乱
+- 物品再次散落
+
+**收拾行李时：**
+
+- 衣物重新展开
+- 行李箱内部变乱
+
+熵增的目的不是惩罚玩家，而是持续制造「刚整理好又乱了」的挫败感。
+
+---
+
+## 本地开发
+
+```bash
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+浏览器打开终端提示的本地地址（默认 `http://localhost:5173`）。
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+---
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## 构建与预览
+
+```bash
+npm run build    # 输出到 dist/
+npm run preview  # 本地预览生产构建
 ```
-# game-adhd-simulator
+
+---
+
+## 部署
+
+本项目是**静态单页应用**，构建产物在 `dist/` 目录，**不需要后端**，也**不需要 Railway** 这类运行服务的平台。
+
+推荐使用静态托管：
+
+| 平台 | 说明 |
+|------|------|
+| [Vercel](https://vercel.com) | 连接 GitHub 仓库，Build Command 填 `npm run build`，Output Directory 填 `dist` |
+| [Netlify](https://netlify.com) | 配置方式与 Vercel 类似 |
+| [GitHub Pages](https://pages.github.com) | 免费，适合开源项目 |
+| [Cloudflare Pages](https://pages.cloudflare.com) | 免费 CDN |
+
+每次推送到主分支后，平台可自动重新部署。
+
+---
+
+## 项目结构（简要）
+
+```
+src/
+├── core/           # 游戏状态与 runtime（GameRuntime）
+├── data/           # 关卡数据、任务文案、类型定义
+├── ui/level-01/    # 第一关场景与各类任务 UI
+└── assets/         # 图片等资源
+```
+
+---
+
+## 其他脚本
+
+```bash
+npm run lint
+```
