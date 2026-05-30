@@ -153,6 +153,7 @@ export default function Level01Scene() {
           <ClickTarget componentId="phone" className={styles.phone} ariaLabel="手机">
             <div className={styles.phoneBody}>
               <div className={styles.phoneScreen} />
+              <div className={styles.phoneHomeButton} aria-hidden="true" />
             </div>
           </ClickTarget>
 
