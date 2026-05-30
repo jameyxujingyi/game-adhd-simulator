@@ -21,3 +21,7 @@ export const TODO_ITEMS: { id: ClickableComponentId; label: string }[] = [
   { id: 'todo-select-font', label: '选择字体' },
   { id: 'todo-select-bg-color', label: '选择背景颜色' },
 ]
+
+export function areAllTodosComplete(completedTodos: ClickableComponentId[]): boolean {
+  return TODO_ITEMS.every((item) => completedTodos.includes(item.id))
+}

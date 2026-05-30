@@ -10,11 +10,10 @@
   top: 14%;
   left: 50%;
   transform: translateX(-50%);
-  width: min(480px, 72%);
+  width: min(560px, 78%);
   pointer-events: auto;
 }
 
-/* 搜索框 + 答案一体：答案从搜索框下方挂出 */
 .searchUnit {
   background: #fff;
   border: 2px solid #bdbdbd;
@@ -83,81 +82,108 @@
   background: #eeeeee;
 }
 
-.searchButton:active:not(:disabled) {
-  animation: none;
-  transform: scale(0.94);
-}
-
 .searchButton:disabled {
   opacity: 0.55;
   cursor: default;
   animation: none;
 }
 
-.answerDrop {
-  width: 100%;
-  box-sizing: border-box;
+.imageResults {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  padding: 16px;
   border-top: 1px solid #d5d5d5;
   background: #fafafa;
-  padding: 18px 22px 16px;
-  min-height: 148px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+}
+
+.imageTile {
+  aspect-ratio: 1;
+  width: 100%;
+  border: 2px solid #bdbdbd;
+  border-radius: 6px;
+  overflow: hidden;
+  padding: 0;
+  background: #eee;
+  cursor: pointer;
+}
+
+.imageTileCorrect {
   cursor: grab;
   touch-action: none;
-  user-select: none;
 }
 
-.answerDropText {
-  display: block;
-  font-size: clamp(19px, 2vw, 25px);
-  line-height: 1.32;
-  color: #333;
-  text-align: center;
-  pointer-events: none;
-}
-
-.answerDropHint {
-  font-size: 0.72em;
-  color: #888;
-}
-
-.answerDrop:active {
+.imageTileCorrect:active {
   cursor: grabbing;
 }
 
-.answerFloat {
+.imageTile img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  pointer-events: none;
+}
+
+.imageFloat {
   position: absolute;
   z-index: 9999;
   left: 0;
   top: 0;
   margin: 0;
-  padding: 18px 22px 16px;
+  padding: 0;
   box-sizing: border-box;
-  pointer-events: none;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  background: #fafafa;
   border: 2px solid #bdbdbd;
-  border-radius: 4px;
+  border-radius: 6px;
+  overflow: hidden;
+  pointer-events: none;
   box-shadow: 0 10px 32px rgba(0, 0, 0, 0.24);
   touch-action: none;
   user-select: none;
   will-change: left, top, transform;
 }
 
-.answerDragging {
-  pointer-events: auto;
-  cursor: grabbing;
-  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.3);
+.imageFloat img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
-.answerSnapping {
+.imageDragging {
+  pointer-events: auto;
+  cursor: grabbing;
+}
+
+.imageSnapping {
   pointer-events: none;
   box-shadow: 0 4px 12px rgba(255, 183, 77, 0.45);
   border-color: rgba(255, 183, 77, 0.85);
+}
+
+.wrongHint {
+  position: absolute;
+  left: 50%;
+  top: 58%;
+  transform: translateX(-50%);
+  z-index: 190;
+  padding: 14px 28px;
+  background: rgba(40, 40, 40, 0.92);
+  color: #fff;
+  font-size: 18px;
+  border-radius: 10px;
+  pointer-events: none;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  animation: wrongHintPop 0.25s ease-out;
+}
+
+@keyframes wrongHintPop {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) scale(1);
+  }
 }

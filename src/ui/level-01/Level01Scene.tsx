@@ -1,9 +1,35 @@
-import { forwardRef, useRef } from 'react'
+import { forwardRef, useRef, useState } from 'react'
 import type { ClickableComponentId } from '../../data/types'
 import { TODO_ITEMS } from '../../data/types'
+import {
+  CONTENT_BOX_1_ANSWER_LINES,
+  CONTENT_BOX_1_SEARCH_QUERY,
+} from '../../data/level-01/quest-01'
+import {
+  CONTENT_BOX_2_ANSWER_LINES,
+  CONTENT_BOX_2_SEARCH_QUERY,
+} from '../../data/level-01/quest-content-box-2'
+import { IMAGE_BOX_CORRECT_SRC } from '../../data/level-01/quest-image-box'
+import {
+  FONT_SELECT_BUTTON_LABEL,
+  FONT_SELECT_PREVIEW,
+} from '../../data/level-01/quest-font-select'
+import { END_TEXT_ALL_DONE, END_TEXT_INCOMPLETE, EXIT_CANCEL_BUTTON, EXIT_CONFIRM_BUTTON, EXIT_CONFIRM_TEXT } from '../../data/level-01/quest-end'
+import type { BgColorId } from '../../data/level-01/quest-bg-select'
+import type { DriftedItemId } from '../../core/types/state'
 import { useGame } from '../bridge/GameProvider'
+import BgSelectOverlay from './BgSelectOverlay'
+import ChoreQuestOverlay from './ChoreQuestOverlay'
+import {
+  DistractionSearchOverlay,
+  DistractionThoughtBubbles,
+  DriftedSlideItems,
+  LaptopDistractionPanel,
+} from './DistractionQuest'
+import ImageSearchQuestPanel from './ImageSearchQuestPanel'
 import MusicQuestOverlay, { albumCover } from './MusicQuestOverlay'
 import musicStyles from './MusicQuestOverlay.module.css'
+import PhoneMessageQuestOverlay from './PhoneMessageQuestOverlay'
 import SearchQuestPanel from './SearchQuestPanel'
 import styles from './Level01Scene.module.css'
 
@@ -12,6 +38,12 @@ function formatTime(ms: number): string {
   const minutes = Math.floor(totalSeconds / 60)
   const seconds = totalSeconds % 60
   return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+}
+
+const PPT_BG_CLASS: Record<BgColorId, string> = {
+  'light-green': styles.pptScreenBgLightGreen,
+  'light-blue': styles.pptScreenBgLightBlue,
+  'light-orange': styles.pptScreenBgLightOrange,
 }
 
 const ClickTarget = forwardRef<
@@ -27,6 +59,13 @@ const ClickTarget = forwardRef<
   const sideQuestActive = state.activeSideQuest !== null
   const musicPhase = state.musicQuest?.phase
   const iconPhaseActive = musicPhase === 'icon'
+  const phoneQuestActive = state.phoneMessageQuest !== null
+  const fontSelectModalOpen = state.fontSelectModalOpen
+  const bgSelectQuest = state.bgSelectQuest
+  const bgSelectQuestActive = bgSelectQuest !== null
+  const distractionQuestActive = state.distractionQuest !== null
+  const choreQuestActive = state.choreQuest !== null
+  const contentFallQuestActive = state.contentFallQuest !== null
 
   return (
     <button
@@ -35,7 +74,18 @@ const ClickTarget = forwardRef<
       className={`${styles.clickable} ${className ?? ''}`}
       data-component-id={componentId}
       aria-label={ariaLabel}
-      disabled={state.phase !== 'playing' || sideQuestActive || iconPhaseActive || musicPhase === 'album-modal'}
+      disabled={
+        state.phase !== 'playing' ||
+        sideQuestActive ||
+        iconPhaseActive ||
+        musicPhase === 'album-modal' ||
+        phoneQuestActive ||
+        fontSelectModalOpen ||
+        bgSelectQuestActive ||
+        distractionQuestActive ||
+        choreQuestActive ||
+        contentFallQuestActive
+      }
       onClick={() => dispatch({ type: 'CLICK_COMPONENT', componentId })}
     >
       {children}
@@ -45,21 +95,86 @@ const ClickTarget = forwardRef<
 
 export default function Level01Scene() {
   const { state, dispatch } = useGame()
+  const [exitConfirmOpen, setExitConfirmOpen] = useState(false)
   const isReady = state.phase === 'ready'
+  const showStartModal = state.showStartModal
+  const isEnded = state.phase === 'ended'
   const contentBox1Ref = useRef<HTMLButtonElement>(null)
+  const contentBox2Ref = useRef<HTMLButtonElement>(null)
+  const imageBoxRef = useRef<HTMLButtonElement>(null)
+  const mopRef = useRef<HTMLButtonElement>(null)
+  const waterRef = useRef<HTMLButtonElement>(null)
+  const sprayRef = useRef<HTMLButtonElement>(null)
+  const plantRef = useRef<HTMLButtonElement>(null)
   const contentBox1Filled = state.filledContentBoxes['content-box-1']
+  const contentBox2Filled = state.filledContentBoxes['content-box-2']
+  const imageBoxFilled = state.imageBoxFilled
   const sideQuest = state.activeSideQuest
   const musicQuest = state.musicQuest
   const musicPhase = musicQuest?.phase
   const sceneMusicBlocked = musicPhase === 'album-modal'
+  const phoneMessageQuest = state.phoneMessageQuest
+  const phoneQuestActive = phoneMessageQuest !== null
+  const fontSelectModalOpen = state.fontSelectModalOpen
+  const laptopFontHeiti = state.laptopFontHeiti
+  const laptopBgColor = state.laptopBgColor
+  const bgSelectQuest = state.bgSelectQuest
+  const bgSelectQuestActive = bgSelectQuest !== null
+  const distractionQuest = state.distractionQuest
+  const distractionQuestActive = distractionQuest !== null
+  const choreQuest = state.choreQuest
+  const choreQuestActive = choreQuest !== null
+  const contentFallQuest = state.contentFallQuest
+  const contentFallQuestActive = contentFallQuest !== null
+
+  const choreMopPhase = choreQuest?.phase === 'mop'
+  const choreWateringPhase =
+    choreQuest?.phase === 'watering-prompt' ||
+    choreQuest?.phase === 'watering-drag' ||
+    choreQuest?.phase === 'watering-animation'
+  const choreSprayHidden =
+    choreQuest?.phase === 'watering-drag' || choreQuest?.phase === 'watering-animation'
+  const waterVisible = state.waterPuddleVisible
+
+  const driftTargetRefs: Record<DriftedItemId, React.RefObject<HTMLElement | null>> = {
+    'content-box-1': contentBox1Ref,
+    'content-box-2': contentBox2Ref,
+    'image-box': imageBoxRef,
+  }
+
+  const isItemDriftedOut = (id: DriftedItemId) => {
+    if (
+      contentFallQuest !== null &&
+      contentFallQuest.fallenItems.includes(id) &&
+      !contentFallQuest.restoredItems.includes(id)
+    ) {
+      return true
+    }
+    return (
+      distractionQuest !== null &&
+      (distractionQuest.phase === 'laptop-answer' ||
+        distractionQuest.phase === 'drift' ||
+        distractionQuest.phase === 'restore') &&
+      distractionQuest.driftedItems.includes(id) &&
+      !distractionQuest.restoredItems.includes(id)
+    )
+  }
+
+  const hidePptChrome = distractionQuest?.phase === 'laptop-answer'
+  const hidePptSlideForMeasure =
+    hidePptChrome || (contentFallQuest !== null && choreQuestActive)
+  const keepPptBoxesForDrift = (distractionQuest?.driftedItems.length ?? 0) > 0
+  const keepPptBoxesForFall = (contentFallQuest?.fallenItems.length ?? 0) > 0
+  const showPptSlide = !hidePptChrome || keepPptBoxesForDrift || keepPptBoxesForFall
+  const contentFallDriftPhase = choreQuestActive ? 'drift' : 'restore'
 
   return (
     <div className={styles.scene}>
       <div
-        className={`${styles.sceneContent} ${isReady ? styles.sceneDimmed : ''} ${sideQuest ? styles.sceneQuestDimmed : ''} ${sceneMusicBlocked ? styles.sceneMusicBlocked : ''}`}
+        className={`${styles.sceneContent} ${isReady && showStartModal ? styles.sceneDimmed : ''} ${fontSelectModalOpen ? styles.sceneDimmed : ''} ${sideQuest ? styles.sceneQuestDimmed : ''} ${sceneMusicBlocked ? styles.sceneMusicBlocked : ''} ${phoneQuestActive ? styles.sceneShake : ''}`}
       >
       {/* 房间背景：三线透视（左墙 / 后墙 / 地面） */}
-      <div className={styles.room}>
+      <div className={`${styles.room} ${bgSelectQuestActive ? styles.bgSelectPartDimmed : ''}`}>
         <svg
           className={styles.roomSvg}
           viewBox="0 0 1000 700"
@@ -91,7 +206,7 @@ export default function Level01Scene() {
       </div>
 
       {/* 顶部 HUD：倒计时 + 退出 */}
-      <div className={styles.hud}>
+      <div className={`${styles.hud} ${bgSelectQuestActive ? styles.bgSelectPartDimmed : ''}`}>
         <div className={styles.timer} aria-live="polite">
           {formatTime(state.remainingMs)}
         </div>
@@ -100,8 +215,19 @@ export default function Level01Scene() {
           className={styles.exitButton}
           data-component-id="exit-button"
           aria-label="退出"
-          disabled={sideQuest !== null || musicPhase === 'icon' || musicPhase === 'album-modal'}
-          onClick={() => dispatch({ type: 'EXIT' })}
+          disabled={
+            sideQuest !== null ||
+            musicPhase === 'icon' ||
+            musicPhase === 'album-modal' ||
+            phoneQuestActive ||
+            fontSelectModalOpen ||
+            bgSelectQuestActive ||
+            distractionQuestActive ||
+            choreQuestActive ||
+            contentFallQuestActive ||
+            isEnded
+          }
+          onClick={() => setExitConfirmOpen(true)}
         >
           <span className={styles.exitIcon}>×</span>
         </button>
@@ -109,24 +235,29 @@ export default function Level01Scene() {
 
       {/* 桌子：笔记本电脑 + 手机 + 记事本 */}
       <div className={styles.deskArea}>
-        <div className={styles.deskSurface} aria-hidden="true" />
+        <div
+          className={`${styles.deskSurface} ${bgSelectQuestActive ? styles.bgSelectPartDimmed : ''}`}
+          aria-hidden="true"
+        />
 
         <div className={styles.deskItems}>
           {/* 笔记本电脑 */}
           <div className={styles.laptop}>
             <div className={styles.laptopScreenBezel}>
-              <div className={styles.pptScreen}>
-                {musicPhase === 'icon' && (
+              <div
+                className={`${styles.pptScreen} ${laptopFontHeiti ? styles.pptScreenHeiti : ''} ${laptopBgColor ? PPT_BG_CLASS[laptopBgColor] : ''}`}
+              >
+                {!hidePptChrome && musicPhase === 'icon' && (
                   <div className={styles.pptScreenGrayVeil} aria-hidden="true" />
                 )}
 
-                {musicPhase === 'playing' && (
+                {!hidePptChrome && musicPhase === 'playing' && (
                   <div className={musicStyles.laptopAlbumSpinWrap} aria-hidden="true">
                     <img src={albumCover} alt="" className={musicStyles.laptopAlbumSpin} />
                   </div>
                 )}
 
-                {musicPhase === 'icon' && (
+                {!hidePptChrome && musicPhase === 'icon' && (
                   <button
                     type="button"
                     className={musicStyles.laptopMusicIcon}
@@ -142,10 +273,23 @@ export default function Level01Scene() {
                   </button>
                 )}
 
-                <span className={styles.pptLabel}>PPTX.</span>
-                <h1 className={styles.slideTitle}>我为什么睡不着</h1>
+                {distractionQuest &&
+                  (distractionQuest.phase === 'laptop-search' ||
+                    distractionQuest.phase === 'laptop-answer') && (
+                    <LaptopDistractionPanel phase={distractionQuest.phase} />
+                  )}
 
-                <div className={styles.slideContent}>
+                {!hidePptChrome && (
+                  <>
+                    <span className={styles.pptLabel}>PPTX.</span>
+                    <h1 className={styles.slideTitle}>我为什么睡不着</h1>
+                  </>
+                )}
+
+                {showPptSlide && (
+                <div
+                  className={`${styles.slideContent} ${hidePptSlideForMeasure ? styles.pptSlideMeasureOnly : ''}`}
+                >
                   <div className={styles.contentColumn}>
                     <ClickTarget
                       ref={contentBox1Ref}
@@ -154,36 +298,49 @@ export default function Level01Scene() {
                       ariaLabel="内容框1"
                     >
                       <span className={styles.contentBoxText}>
-                        {contentBox1Filled ?? '文本'}
+                        {isItemDriftedOut('content-box-1') ? '' : (contentBox1Filled ?? '文本')}
                       </span>
                     </ClickTarget>
                     <ClickTarget
+                      ref={contentBox2Ref}
                       componentId="content-box-2"
-                      className={styles.contentBox}
+                      className={`${styles.contentBox} ${contentBox2Filled ? styles.contentBoxFilled : ''}`}
                       ariaLabel="内容框2"
                     >
-                      <span>文本</span>
+                      <span className={styles.contentBoxText}>
+                        {isItemDriftedOut('content-box-2') ? '' : (contentBox2Filled ?? '文本')}
+                      </span>
                     </ClickTarget>
                   </div>
 
                   <ClickTarget
+                    ref={imageBoxRef}
                     componentId="image-box"
-                    className={styles.imageBox}
+                    className={`${styles.imageBox} ${imageBoxFilled ? styles.imageBoxFilled : ''}`}
                     ariaLabel="图片框"
                   >
-                    <svg viewBox="0 0 100 120" className={styles.imagePlaceholder} aria-hidden="true">
-                      <circle cx="72" cy="28" r="14" fill="#ffd54f" />
-                      <path
-                        d="M10 95 L35 55 L55 75 L75 45 L95 70 L95 110 L10 110 Z"
-                        fill="#81c784"
+                    {imageBoxFilled && !isItemDriftedOut('image-box') ? (
+                      <img
+                        src={IMAGE_BOX_CORRECT_SRC}
+                        alt=""
+                        className={styles.imageBoxPhoto}
                       />
-                      <path
-                        d="M10 110 L30 85 L50 95 L70 75 L90 90 L90 110 Z"
-                        fill="#66bb6a"
-                      />
-                    </svg>
+                    ) : !imageBoxFilled ? (
+                      <svg viewBox="0 0 100 120" className={styles.imagePlaceholder} aria-hidden="true">
+                        <circle cx="72" cy="28" r="14" fill="#ffd54f" />
+                        <path
+                          d="M10 95 L35 55 L55 75 L75 45 L95 70 L95 110 L10 110 Z"
+                          fill="#81c784"
+                        />
+                        <path
+                          d="M10 110 L30 85 L50 95 L70 75 L90 90 L90 110 Z"
+                          fill="#66bb6a"
+                        />
+                      </svg>
+                    ) : null}
                   </ClickTarget>
                 </div>
+                )}
               </div>
             </div>
             <div className={styles.laptopBase} aria-hidden="true">
@@ -197,15 +354,21 @@ export default function Level01Scene() {
           </div>
 
           {/* 手机 */}
-          <ClickTarget componentId="phone" className={styles.phone} ariaLabel="手机">
+          <ClickTarget
+            componentId="phone"
+            className={`${styles.phone} ${bgSelectQuestActive ? styles.bgSelectPartDimmed : ''}`}
+            ariaLabel="手机"
+          >
             <div className={styles.phoneBody}>
-              <div className={styles.phoneScreen} />
+              <div
+                className={`${styles.phoneScreen} ${phoneQuestActive ? styles.phoneScreenLit : ''}`}
+              />
               <div className={styles.phoneHomeButton} aria-hidden="true" />
             </div>
           </ClickTarget>
 
           {/* 右下角记事本 */}
-          <div className={styles.notepad}>
+          <div className={`${styles.notepad} ${bgSelectQuestActive ? styles.bgSelectPartDimmed : ''}`}>
             <div className={styles.notepadSpiral} aria-hidden="true">
               {Array.from({ length: 8 }).map((_, i) => (
                 <span key={i} className={styles.spiralRing} />
@@ -238,8 +401,15 @@ export default function Level01Scene() {
       </div>
 
       {/* 墙地交界线：拖把、喷水壶、盆栽 */}
-      <div className={styles.roomCorner}>
-        <ClickTarget componentId="mop" className={styles.mop} ariaLabel="拖把">
+      <div
+        className={`${styles.roomCorner} ${choreMopPhase || choreWateringPhase ? styles.choreSpotlightCorner : ''} ${bgSelectQuestActive ? styles.bgSelectPartDimmed : ''}`}
+      >
+        <ClickTarget
+          ref={mopRef}
+          componentId="mop"
+          className={`${styles.mop} ${choreMopPhase ? styles.choreMopHidden : ''} ${choreMopPhase ? styles.choreFloat : ''}`}
+          ariaLabel="拖把"
+        >
           <svg viewBox="0 0 60 180" className={styles.mopSvg} aria-hidden="true">
             <rect x="27" y="0" width="6" height="130" rx="3" fill="#8d6e63" />
             <rect x="10" y="125" width="40" height="14" rx="4" fill="#bdbdbd" />
@@ -251,8 +421,9 @@ export default function Level01Scene() {
         </ClickTarget>
 
         <ClickTarget
+          ref={sprayRef}
           componentId="spray-bottle"
-          className={styles.sprayBottle}
+          className={`${styles.sprayBottle} ${choreWateringPhase ? styles.choreSpotlightItem : ''} ${choreWateringPhase ? styles.choreFloat : ''} ${choreSprayHidden ? styles.choreSprayHidden : ''}`}
           ariaLabel="喷水壶"
         >
           <svg viewBox="0 0 50 80" className={styles.spraySvg} aria-hidden="true">
@@ -265,8 +436,9 @@ export default function Level01Scene() {
         </ClickTarget>
 
         <ClickTarget
+          ref={plantRef}
           componentId="potted-plant"
-          className={styles.pottedPlant}
+          className={`${styles.pottedPlant} ${choreWateringPhase ? styles.choreSpotlightItem : ''} ${choreWateringPhase ? styles.choreFloat : ''}`}
           ariaLabel="一盆大盆栽"
         >
           <svg viewBox="0 0 120 200" className={styles.plantSvg} aria-hidden="true">
@@ -280,9 +452,11 @@ export default function Level01Scene() {
       </div>
 
       {/* 水塘（画面正中心） */}
+      {waterVisible && (
       <ClickTarget
+        ref={waterRef}
         componentId="water-puddle"
-        className={styles.waterPuddle}
+        className={`${styles.waterPuddle} ${choreMopPhase ? styles.choreSpotlightItem : ''} ${choreMopPhase ? styles.waterPulse : ''} ${bgSelectQuestActive ? styles.bgSelectPartDimmed : ''}`}
         ariaLabel="地上一滩水"
       >
         <svg viewBox="0 0 120 70" className={styles.waterSvg} aria-hidden="true">
@@ -307,14 +481,103 @@ export default function Level01Scene() {
           />
         </svg>
       </ClickTarget>
+      )}
       </div>
 
       {sideQuest?.type === 'content-box-1-search' && (
         <SearchQuestPanel
+          searchQuery={CONTENT_BOX_1_SEARCH_QUERY}
+          answerLines={[CONTENT_BOX_1_ANSWER_LINES[0], CONTENT_BOX_1_ANSWER_LINES[1]]}
+          dropHint={CONTENT_BOX_1_ANSWER_LINES[2]}
+          pulseSearchIcon
           searchRevealed={sideQuest.searchRevealed}
           onReveal={() => dispatch({ type: 'REVEAL_SEARCH_ANSWER' })}
           onComplete={() => dispatch({ type: 'COMPLETE_CONTENT_BOX_1' })}
           targetRef={contentBox1Ref}
+        />
+      )}
+
+      {sideQuest?.type === 'content-box-2-search' && (
+        <SearchQuestPanel
+          searchQuery={CONTENT_BOX_2_SEARCH_QUERY}
+          answerLines={CONTENT_BOX_2_ANSWER_LINES}
+          pulseSearchIcon={false}
+          snapBlocked={phoneQuestActive}
+          searchRevealed={sideQuest.searchRevealed}
+          onReveal={() => dispatch({ type: 'REVEAL_SEARCH_ANSWER' })}
+          onComplete={() => dispatch({ type: 'COMPLETE_CONTENT_BOX_2' })}
+          targetRef={contentBox2Ref}
+        />
+      )}
+
+      {sideQuest?.type === 'image-box-search' && (
+        <ImageSearchQuestPanel
+          searchRevealed={sideQuest.searchRevealed}
+          onReveal={() => dispatch({ type: 'REVEAL_SEARCH_ANSWER' })}
+          onComplete={() => dispatch({ type: 'COMPLETE_IMAGE_BOX' })}
+          targetRef={imageBoxRef}
+        />
+      )}
+
+      {distractionQuest?.phase === 'laptop-search' && (
+        <DistractionSearchOverlay
+          onSearch={() => dispatch({ type: 'REVEAL_DISTRACTION_SEARCH' })}
+        />
+      )}
+
+      {distractionQuest && <DistractionThoughtBubbles quest={distractionQuest} />}
+
+      {distractionQuest &&
+        distractionQuest.driftedItems.length > 0 &&
+        (distractionQuest.phase === 'laptop-answer' ||
+          distractionQuest.phase === 'drift' ||
+          distractionQuest.phase === 'restore') && (
+          <DriftedSlideItems
+            quest={distractionQuest}
+            targetRefs={driftTargetRefs}
+            contentBox1Text={contentBox1Filled}
+            contentBox2Text={contentBox2Filled}
+            onDismissThought={() => dispatch({ type: 'DISMISS_DISTRACTION_THOUGHT' })}
+            onRestoreItem={(itemId) => dispatch({ type: 'RESTORE_DRIFTED_ITEM', itemId })}
+          />
+        )}
+
+      {choreQuest && (
+        <ChoreQuestOverlay
+          quest={choreQuest}
+          mopRef={mopRef}
+          waterRef={waterRef}
+          sprayRef={sprayRef}
+          plantRef={plantRef}
+          onCompleteMop={() => dispatch({ type: 'COMPLETE_MOP_QUEST' })}
+          onWateringAccept={() => dispatch({ type: 'CHORE_WATERING_ACCEPT' })}
+          onWateringDecline={() => dispatch({ type: 'CHORE_WATERING_DECLINE' })}
+          onCompleteWatering={() => dispatch({ type: 'COMPLETE_WATERING_QUEST' })}
+        />
+      )}
+
+      {contentFallQuest && (
+        <DriftedSlideItems
+          quest={{
+            phase: contentFallDriftPhase,
+            driftedItems: contentFallQuest.fallenItems,
+            restoredItems: contentFallQuest.restoredItems,
+            thought2Visible: false,
+          }}
+          driftHidden={choreQuestActive}
+          targetRefs={driftTargetRefs}
+          contentBox1Text={contentBox1Filled}
+          contentBox2Text={contentBox2Filled}
+          onDismissThought={() => {}}
+          onRestoreItem={(itemId) => dispatch({ type: 'RESTORE_FALLEN_ITEM', itemId })}
+        />
+      )}
+
+      {phoneMessageQuest && (
+        <PhoneMessageQuestOverlay
+          phase={phoneMessageQuest.phase}
+          onOpenReply={() => dispatch({ type: 'OPEN_PHONE_REPLY' })}
+          onSend={() => dispatch({ type: 'SEND_PHONE_MESSAGE' })}
         />
       )}
 
@@ -325,7 +588,7 @@ export default function Level01Scene() {
         />
       )}
 
-      {isReady && (
+      {isReady && showStartModal && (
         <div className={styles.startOverlay} role="dialog" aria-modal="true" aria-labelledby="start-title">
           <div className={styles.startModal}>
             <p id="start-title" className={styles.startText}>
@@ -340,6 +603,82 @@ export default function Level01Scene() {
             >
               开始
             </button>
+          </div>
+        </div>
+      )}
+
+      {fontSelectModalOpen && (
+        <div className={styles.startOverlay} role="dialog" aria-modal="true" aria-label="选择字体">
+          <div className={styles.startModal}>
+            <p className={styles.fontPreview}>{FONT_SELECT_PREVIEW}</p>
+            <button
+              type="button"
+              className={styles.startButton}
+              onClick={() => dispatch({ type: 'SELECT_LAPTOP_FONT' })}
+            >
+              {FONT_SELECT_BUTTON_LABEL}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {bgSelectQuest && (
+        <BgSelectOverlay
+          quest={bgSelectQuest}
+          onSelectColor={(colorId) => dispatch({ type: 'SELECT_BG_COLOR', colorId })}
+          onDismissSuccess={() => dispatch({ type: 'DISMISS_BG_SELECT_SUCCESS' })}
+        />
+      )}
+
+      {exitConfirmOpen && (
+        <div className={styles.startOverlay} role="dialog" aria-modal="true" aria-label="退出确认">
+          <div className={styles.startModal}>
+            <p className={styles.endText}>{EXIT_CONFIRM_TEXT}</p>
+            <div className={styles.endButtonRow}>
+              <button
+                type="button"
+                className={styles.startButton}
+                onClick={() => {
+                  setExitConfirmOpen(false)
+                  dispatch({ type: 'END_GAME_RETRY' })
+                }}
+              >
+                {EXIT_CONFIRM_BUTTON}
+              </button>
+              <button
+                type="button"
+                className={styles.cancelButton}
+                onClick={() => setExitConfirmOpen(false)}
+              >
+                {EXIT_CANCEL_BUTTON}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isEnded && state.endResult && (
+        <div className={styles.startOverlay} role="dialog" aria-modal="true" aria-label="游戏结束">
+          <div className={styles.startModal}>
+            <p className={styles.endText}>
+              {state.endResult === 'all-done' ? END_TEXT_ALL_DONE : END_TEXT_INCOMPLETE}
+            </p>
+            <div className={styles.endButtonRow}>
+              <button
+                type="button"
+                className={styles.startButton}
+                onClick={() => dispatch({ type: 'END_GAME_HOME' })}
+              >
+                游戏结束
+              </button>
+              <button
+                type="button"
+                className={styles.startButton}
+                onClick={() => dispatch({ type: 'END_GAME_RETRY' })}
+              >
+                再来一局
+              </button>
+            </div>
           </div>
         </div>
       )}

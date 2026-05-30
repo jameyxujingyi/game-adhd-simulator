@@ -20,7 +20,7 @@ function App() {
 
   return (
     <div className={styles.scaleShell}>
-      <div className={styles.viewport}>
+      <div className={styles.viewport} data-game-viewport>
         <GameProvider>
           <Level01Scene />
         </GameProvider>

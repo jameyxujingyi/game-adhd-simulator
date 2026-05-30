@@ -1,0 +1,117 @@
+.overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+}
+
+.dialogColumn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 22px;
+  width: min(480px, 88%);
+}
+
+.panel {
+  width: 100%;
+  padding: 28px 32px 24px;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.28);
+}
+
+.panelTitle {
+  margin: 0 0 20px;
+  font-size: 20px;
+  color: #222;
+  text-align: center;
+}
+
+.colorRow {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+}
+
+.colorSwatch {
+  width: 72px;
+  height: 72px;
+  border-radius: 12px;
+  border: 3px solid #bdbdbd;
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.colorSwatch:hover {
+  transform: scale(1.06);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+}
+
+.swatchGreen {
+  background: #c8e6c9;
+}
+
+.swatchBlue {
+  background: #bbdefb;
+}
+
+.swatchOrange {
+  background: #ffe0b2;
+}
+
+.thoughtWrap {
+  width: 100%;
+  pointer-events: none;
+}
+
+.thoughtBubble {
+  width: 100%;
+  padding: 18px 24px;
+  background: #fff;
+  border: 2px solid #c5c5c5;
+  border-radius: 16px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.14);
+  box-sizing: border-box;
+}
+
+.thoughtText {
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.55;
+  color: #222;
+  text-align: center;
+}
+
+.feedbackCard {
+  width: min(440px, 88%);
+  padding: 28px 32px 24px;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.28);
+  text-align: center;
+}
+
+.feedbackText {
+  margin: 0 0 20px;
+  font-size: 20px;
+  line-height: 1.55;
+  color: #222;
+}
+
+.dismissButton {
+  padding: 10px 28px;
+  border: none;
+  border-radius: 10px;
+  background: #3d7ea6;
+  color: #fff;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.dismissButton:hover {
+  background: #356d91;
+}
