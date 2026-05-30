@@ -1,6 +1,10 @@
+import { forwardRef, useRef } from 'react'
 import type { ClickableComponentId } from '../../data/types'
 import { TODO_ITEMS } from '../../data/types'
 import { useGame } from '../bridge/GameProvider'
+import MusicQuestOverlay, { albumCover } from './MusicQuestOverlay'
+import musicStyles from './MusicQuestOverlay.module.css'
+import SearchQuestPanel from './SearchQuestPanel'
 import styles from './Level01Scene.module.css'
 
 function formatTime(ms: number): string {
@@ -10,37 +14,50 @@ function formatTime(ms: number): string {
   return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
 }
 
-function ClickTarget({
-  componentId,
-  className,
-  ariaLabel,
-  children,
-}: {
-  componentId: ClickableComponentId
-  className?: string
-  ariaLabel: string
-  children?: React.ReactNode
-}) {
-  const { dispatch } = useGame()
+const ClickTarget = forwardRef<
+  HTMLButtonElement,
+  {
+    componentId: ClickableComponentId
+    className?: string
+    ariaLabel: string
+    children?: React.ReactNode
+  }
+>(function ClickTarget({ componentId, className, ariaLabel, children }, ref) {
+  const { state, dispatch } = useGame()
+  const sideQuestActive = state.activeSideQuest !== null
+  const musicPhase = state.musicQuest?.phase
+  const iconPhaseActive = musicPhase === 'icon'
 
   return (
     <button
+      ref={ref}
       type="button"
       className={`${styles.clickable} ${className ?? ''}`}
       data-component-id={componentId}
       aria-label={ariaLabel}
+      disabled={state.phase !== 'playing' || sideQuestActive || iconPhaseActive || musicPhase === 'album-modal'}
       onClick={() => dispatch({ type: 'CLICK_COMPONENT', componentId })}
     >
       {children}
     </button>
   )
-}
+})
 
 export default function Level01Scene() {
   const { state, dispatch } = useGame()
+  const isReady = state.phase === 'ready'
+  const contentBox1Ref = useRef<HTMLButtonElement>(null)
+  const contentBox1Filled = state.filledContentBoxes['content-box-1']
+  const sideQuest = state.activeSideQuest
+  const musicQuest = state.musicQuest
+  const musicPhase = musicQuest?.phase
+  const sceneMusicBlocked = musicPhase === 'album-modal'
 
   return (
     <div className={styles.scene}>
+      <div
+        className={`${styles.sceneContent} ${isReady ? styles.sceneDimmed : ''} ${sideQuest ? styles.sceneQuestDimmed : ''} ${sceneMusicBlocked ? styles.sceneMusicBlocked : ''}`}
+      >
       {/* 房间背景：三线透视（左墙 / 后墙 / 地面） */}
       <div className={styles.room}>
         <svg
@@ -83,6 +100,7 @@ export default function Level01Scene() {
           className={styles.exitButton}
           data-component-id="exit-button"
           aria-label="退出"
+          disabled={sideQuest !== null || musicPhase === 'icon' || musicPhase === 'album-modal'}
           onClick={() => dispatch({ type: 'EXIT' })}
         >
           <span className={styles.exitIcon}>×</span>
@@ -98,17 +116,46 @@ export default function Level01Scene() {
           <div className={styles.laptop}>
             <div className={styles.laptopScreenBezel}>
               <div className={styles.pptScreen}>
+                {musicPhase === 'icon' && (
+                  <div className={styles.pptScreenGrayVeil} aria-hidden="true" />
+                )}
+
+                {musicPhase === 'playing' && (
+                  <div className={musicStyles.laptopAlbumSpinWrap} aria-hidden="true">
+                    <img src={albumCover} alt="" className={musicStyles.laptopAlbumSpin} />
+                  </div>
+                )}
+
+                {musicPhase === 'icon' && (
+                  <button
+                    type="button"
+                    className={musicStyles.laptopMusicIcon}
+                    aria-label="播放音乐"
+                    onClick={() => dispatch({ type: 'CLICK_MUSIC_ICON' })}
+                  >
+                    <svg className={musicStyles.musicNoteSvg} viewBox="0 0 24 24" aria-hidden="true">
+                      <path
+                        fill="currentColor"
+                        d="M12 3v10.55A4 4 0 1 0 14 17V7h6V3h-8z"
+                      />
+                    </svg>
+                  </button>
+                )}
+
                 <span className={styles.pptLabel}>PPTX.</span>
                 <h1 className={styles.slideTitle}>我为什么睡不着</h1>
 
                 <div className={styles.slideContent}>
                   <div className={styles.contentColumn}>
                     <ClickTarget
+                      ref={contentBox1Ref}
                       componentId="content-box-1"
-                      className={styles.contentBox}
+                      className={`${styles.contentBox} ${contentBox1Filled ? styles.contentBoxFilled : ''}`}
                       ariaLabel="内容框1"
                     >
-                      <span>文本</span>
+                      <span className={styles.contentBoxText}>
+                        {contentBox1Filled ?? '文本'}
+                      </span>
                     </ClickTarget>
                     <ClickTarget
                       componentId="content-box-2"
@@ -165,18 +212,26 @@ export default function Level01Scene() {
               ))}
             </div>
             <ul className={styles.todoList}>
-              {TODO_ITEMS.map((item) => (
-                <li key={item.id}>
-                  <ClickTarget
-                    componentId={item.id}
-                    className={styles.todoItem}
-                    ariaLabel={item.label}
-                  >
-                    <span className={styles.checkbox} aria-hidden="true" />
-                    <span className={styles.todoText}>{item.label}</span>
-                  </ClickTarget>
-                </li>
-              ))}
+              {TODO_ITEMS.map((item) => {
+                const isDone = state.completedTodos.includes(item.id)
+                return (
+                  <li key={item.id}>
+                    <ClickTarget
+                      componentId={item.id}
+                      className={styles.todoItem}
+                      ariaLabel={item.label}
+                    >
+                      <span
+                        className={`${styles.checkbox} ${isDone ? styles.checkboxChecked : ''}`}
+                        aria-hidden="true"
+                      />
+                      <span className={`${styles.todoText} ${isDone ? styles.todoTextDone : ''}`}>
+                        {item.label}
+                      </span>
+                    </ClickTarget>
+                  </li>
+                )
+              })}
             </ul>
           </div>
         </div>
@@ -252,6 +307,42 @@ export default function Level01Scene() {
           />
         </svg>
       </ClickTarget>
+      </div>
+
+      {sideQuest?.type === 'content-box-1-search' && (
+        <SearchQuestPanel
+          searchRevealed={sideQuest.searchRevealed}
+          onReveal={() => dispatch({ type: 'REVEAL_SEARCH_ANSWER' })}
+          onComplete={() => dispatch({ type: 'COMPLETE_CONTENT_BOX_1' })}
+          targetRef={contentBox1Ref}
+        />
+      )}
+
+      {musicQuest && musicQuest.phase !== 'playing' && (
+        <MusicQuestOverlay
+          phase={musicQuest.phase}
+          onSelectAlbum={() => dispatch({ type: 'SELECT_MUSIC_ALBUM' })}
+        />
+      )}
+
+      {isReady && (
+        <div className={styles.startOverlay} role="dialog" aria-modal="true" aria-labelledby="start-title">
+          <div className={styles.startModal}>
+            <p id="start-title" className={styles.startText}>
+              你需要在1分钟之内做完ppt
+              <br />
+              请参考记事本上的任务清单
+            </p>
+            <button
+              type="button"
+              className={styles.startButton}
+              onClick={() => dispatch({ type: 'START' })}
+            >
+              开始
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
