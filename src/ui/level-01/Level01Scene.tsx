@@ -53,10 +53,8 @@ export default function Level01Scene() {
           <polygon points="210,268 1000,268 1000,0 210,0" className={styles.backWall} />
           {/* 左墙（延伸至画面顶部与底部） */}
           <polygon points="0,700 210,268 210,0 0,0" className={styles.leftWall} />
-          {/* 右墙 */}
-          <polygon points="990,268 1000,268 1000,700 990,700" className={styles.rightWall} />
-          {/* 木质地板（中央透视区域） */}
-          <polygon points="40,700 210,268 990,268 990,700" className={styles.floorPlane} />
+          {/* 木质地板（左右缘与墙面对齐） */}
+          <polygon points="0,700 210,268 1000,268 1000,700" className={styles.floorPlane} />
 
           {Array.from({ length: 9 }).map((_, row) =>
             Array.from({ length: 15 }).map((_, col) => (
@@ -71,7 +69,6 @@ export default function Level01Scene() {
             )),
           )}
 
-          <line x1="210" y1="268" x2="210" y2="0" className={styles.cornerAxisY} />
           <line x1="210" y1="268" x2="1000" y2="268" className={styles.cornerAxisX} />
         </svg>
       </div>
